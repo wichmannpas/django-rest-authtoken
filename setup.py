@@ -5,7 +5,7 @@ with open('README.md') as fh:
 
 setuptools.setup(
     name='django-rest-authtoken',
-    version='0.9',
+    version='1.1',
     author='Pascal Wichmann',
     author_email='wichmannpas@gmail.com',
     description='A simple auth token auth backend for Django Rest Framework storing cryptographically hashed tokens on server-side.',

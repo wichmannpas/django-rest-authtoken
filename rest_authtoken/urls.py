@@ -7,8 +7,8 @@ from . import views
 app_name = 'authtoken'
 
 router = SimpleRouter()
-router.register('login', views.LoginViewSet, base_name='login')
-router.register('register', views.RegisterViewSet, base_name='register')
+router.register('login', views.LoginViewSet, basename='login')
+router.register('register', views.RegisterViewSet, basename='register')
 
 urlpatterns = router.urls
 

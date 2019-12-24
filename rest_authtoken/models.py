@@ -55,7 +55,9 @@ class AuthToken(models.Model):
             auth_token = AuthToken.objects.get(
                 hashed_token=AuthToken._hash_token(token))
 
-            if auth_token.age > settings.AUTH_TOKEN_VALIDITY:
+            token_validity = getattr(settings, 'AUTH_TOKEN_VALIDITY', timedelta(days=1))
+
+            if auth_token.age > token_validity:
                 # token expired.
                 auth_token.delete()
                 return None

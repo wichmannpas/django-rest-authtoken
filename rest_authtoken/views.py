@@ -93,5 +93,6 @@ def confirm_email(request, token: str):
 
     setattr(user, REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD, True)
     user.save(update_fields=(REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD,))
+    token.delete()
 
     return HttpResponseRedirect(REGISTRATION_CONFIRM_REDIRECT_PATH)

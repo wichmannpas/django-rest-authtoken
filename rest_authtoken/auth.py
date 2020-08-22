@@ -1,8 +1,6 @@
 from base64 import urlsafe_b64decode
-import binascii
 
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import HTTP_HEADER_ENCODING
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 

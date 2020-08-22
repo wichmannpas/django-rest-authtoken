@@ -1,34 +1,26 @@
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 
-from django.conf import settings
 from django.contrib.auth import authenticate
+from django.db import transaction
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.settings import APISettings
-from rest_framework.viewsets import GenericViewSet, ViewSet
 from rest_framework.views import APIView
+from rest_framework.viewsets import GenericViewSet, ViewSet
 
-from .models import AuthToken
+from .models import AuthToken, EmailConfirmationToken
 from .serializers import UserRegistrationSerializer
-
-
-authtoken_settings = APISettings(
-    {
-        'USER_SERIALIZER': getattr(settings, 'USER_SERIALIZER', None),
-    },
-    {
-        'USER_SERIALIZER': None,
-    },
-    {'USER_SERIALIZER'}
-)
+from .settings import REGISTRATION_CONFIRM_REDIRECT_PATH, \
+    REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD, USER_SERIALIZER
 
 
 class LoginViewSet(ViewSet):
-    def create(self, request: Request) -> Response:
+    @staticmethod
+    def create(request: Request) -> Response:
         user = authenticate(
             username=request.data.get('username'),
             password=request.data.get('password'))
@@ -43,8 +35,8 @@ class LoginViewSet(ViewSet):
             'token': urlsafe_b64encode(token),
         }
 
-        if authtoken_settings.USER_SERIALIZER:
-            data['user'] = authtoken_settings.USER_SERIALIZER(
+        if USER_SERIALIZER:
+            data['user'] = USER_SERIALIZER(
                 instance=user, read_only=True).data
 
         return Response(data)
@@ -53,21 +45,22 @@ class LoginViewSet(ViewSet):
 class LogoutView(APIView):
     permission_classes = IsAuthenticated,
 
-    def delete(self, request: Request) -> Response:
+    @staticmethod
+    def delete(request: Request) -> Response:
         auth_header = request.META.get('HTTP_AUTHORIZATION').split()
 
         if len(auth_header) != 2 or auth_header[0].lower() != 'token':
-            raise ParseError('no token')
+            raise ValidationError('no token')
 
         try:
             auth_token = urlsafe_b64decode(auth_header[1])
         except ValueError:
-            raise ParseError('invalid token')
+            raise ValidationError('invalid token')
 
-        auth_token = AuthToken.get_auth_token(auth_token)
+        auth_token = AuthToken.get_token(auth_token)
 
         if not auth_token:
-            raise ParseError('invalid token')
+            raise ValidationError('invalid token')
 
         auth_token.delete()
 
@@ -81,4 +74,25 @@ class RegisterViewSet(GenericViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response('', status=status.HTTP_201_CREATED)
+        return Response({'success': True}, status=status.HTTP_201_CREATED)
+
+
+@transaction.atomic
+def confirm_email(request, token: str):
+    # TODO
+    try:
+        token = urlsafe_b64decode(token)
+    except ValueError:
+        return HttpResponseBadRequest('invalid token!')
+    token = EmailConfirmationToken.get_token(token)
+    if not token:
+        return HttpResponseBadRequest('invalid token!')
+
+    user = token.user
+    if user.email != token.email:
+        return HttpResponseBadRequest('invalid token!')
+
+    setattr(user, REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD, True)
+    user.save(update_fields=(REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD,))
+
+    return HttpResponseRedirect(REGISTRATION_CONFIRM_REDIRECT_PATH)

@@ -1,7 +1,7 @@
 from datetime import timedelta
 from hashlib import sha512
 from os import urandom
-from typing import Union
+from typing import Optional, Union
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -9,12 +9,15 @@ from django.db import models
 from django.utils import timezone
 
 
-class AuthToken(models.Model):
+class AbstractToken(models.Model):
+    class Meta:
+        abstract = True
+
     hashed_token = models.BinaryField(primary_key=True)
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        related_name='auth_tokens',
+        related_name='%(class)ss',
         on_delete=models.CASCADE)
 
     created = models.DateTimeField(default=timezone.now)
@@ -32,28 +35,29 @@ class AuthToken(models.Model):
         """
         self.delete()
 
-    @staticmethod
-    def create_token_for_user(user: get_user_model()) -> bytes:
+    @classmethod
+    def create_token_for_user(cls, user: get_user_model(), **kwargs) -> bytes:
         """
         Create a new random auth token for user.
         """
         token = urandom(48)
-        AuthToken.objects.create(
-            hashed_token=AuthToken._hash_token(token),
-            user=user)
+        cls.objects.create(
+            hashed_token=cls._hash_token(token),
+            user=user,
+            **kwargs)
         return token
 
-    @staticmethod
-    def get_user_for_token(token: bytes) -> Union[get_user_model(), None]:
-        auth_token = AuthToken.get_auth_token(token)
+    @classmethod
+    def get_user_for_token(cls, token: bytes) -> Optional[get_user_model()]:
+        auth_token = cls.get_token(token)
         if auth_token:
             return auth_token.user
 
-    @staticmethod
-    def get_auth_token(token: bytes) -> Union[get_user_model(), None]:
+    @classmethod
+    def get_token(cls, token: bytes) -> Optional['AbstractToken']:
         try:
-            auth_token = AuthToken.objects.get(
-                hashed_token=AuthToken._hash_token(token))
+            auth_token = cls.objects.select_related('user').get(
+                hashed_token=cls._hash_token(token))
 
             token_validity = getattr(settings, 'AUTH_TOKEN_VALIDITY', timedelta(days=1))
 
@@ -63,7 +67,7 @@ class AuthToken(models.Model):
                 return None
 
             return auth_token
-        except AuthToken.DoesNotExist:
+        except cls.DoesNotExist:
             return None
 
     @staticmethod
@@ -72,3 +76,15 @@ class AuthToken(models.Model):
         Hash a token.
         """
         return sha512(token).digest()
+
+
+class AuthToken(AbstractToken):
+    pass
+
+
+class EmailConfirmationToken(AbstractToken):
+    email = models.EmailField()
+
+    @classmethod
+    def create_token_for_user(cls, user: get_user_model()) -> bytes:
+        return super().create_token_for_user(user, email=user.email)

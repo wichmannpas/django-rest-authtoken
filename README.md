@@ -32,7 +32,7 @@ urlpatterns = [
 ]
 ```
 
-This will add the URLs `/auth/login/`, `/auth/logout/`, `/auth/registration/` (if registration is enabled), and `/auth/registration/confirm/` (if registration and email confirmation are enabled).
+This will add the URLs `/auth/login/`, `/auth/logout/`, `/auth/register/` (if registration is enabled), and `/auth/register/confirm/<token:str>` (if registration and email confirmation are enabled).
 
 To allow authentication using an `Authorization: Token XXXX` HTTP header, the following configuration is required:
 
@@ -69,6 +69,16 @@ curl http://127.0.0.1:8000/auth/login/ --data 'username=john&password=foobar123'
 ```
 
 The supplied token has to be added to all further API requests in the `Authorization` HTTP header.
+
+### Logout
+
+```bash
+curl http://127.0.0.1:8000/auth/logout/ -v -H 'Authorization: Token As3pLIG8WeltLyZxoRcjQqu7wqPXhzFOMuxqFJjXa-Pb4tIMpzh-Ti21Nah4r38P' -XDELETE
+...
+> Authorization: Token g8txWxa2N-u97E-VD2E6SPozZWLLePxeLHu1FsXo3J6HZx1o7ldLkQ-kosk0Vgq6
+...
+< HTTP/1.1 204 No Content
+```
 
 ### Registration
 
@@ -110,7 +120,7 @@ REGISTRATION_ENABLED = True
 
 
 ### Confirmation Email
-It is possible to optionally enable an email confirmation. An email will be sent upon registration to the provided email address. For this to work, the user model needs to contain a `BooleanField` that stores whether the email address has been confirmed already. A minimal example of a compatible user model could look like this: 
+It is possible to optionally enable an email confirmation. An email will be sent upon registration to the provided email address. For this to work, the user model needs to contain a `BooleanField` that stores whether the email address has been confirmed already. A minimal example of a compatible user model could look like this:
 
 ```python
 class User(AbstractUser):
@@ -134,15 +144,40 @@ In the Django settings file, the following configuration is required:
 
 ```python
 REGISTRATION_EMAIL_CONFIRM = True
-REGISTRATION_EMAIL_CONFIRM_FIELD = 'email_confirmed'
+REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD = 'email_confirmed'
+REGISTRATION_EMAIL_CONFIRM_TOKEN_VALIDITY = timedelta(days=1)
 REGISTRATION_EMAIL = {
-    'BASE_URL': 'https://your-super-service.example.org/',
+    'BASE_URL': 'https://your-super-service.example.org',  # without trailing slash
+    'FROM': 'noreply@example.org',
     'SUBJECT': 'Confirm your email address for FOOBAR',
     'MESSAGE': '''Hello {username},
     please visit the following link to confirm your email address: {url}
     ''',
 }
-
 ```
 
 The `MESSAGE` attribute is formatted using the Python `format` function, supplying a `username` and a `url` value. The URL is built based on the supplied `BASE_URL` value in the `REGISTRATION_EMAIL` setting.
+
+For internationalization, lazy translation methods (e. g., `gettext_lazy`) can be used. Strings will be translated to the language of the request which causes the email to be sent (if it is triggered by a request).
+
+To send a confirmation email to a user,  `send_confirmation_email(user: get_user_model())` from `rest_authtoken.email_confirmation` can be called with the user object as argument.
+
+Upon successful confirmation, the user is redirected to the path `/`. This can be changed by setting the variable `REGISTRATION_CONFIRM_REDIRECT_PATH` to a different path in the settings. **Be careful:** The path is not checked. You can configure absolute URLs to other domains as well. Make sure not to set this setting to any untrusted value.
+
+#### Manual Confirmation Emails From Django Admin
+
+If you are using the Django admin app, you can define an action for your user model to manually (re)send confirmation emails to users by defining the following action and supplying it to the `ModelAdmin` (make sure to adapt the field names etc. to your own values):
+
+```python
+def send_confirmation_emails(modeladmin, request, queryset):
+    for user in queryset.filter(email_confirmed=False):
+        send_confirmation_email(user)
+
+@admin.register(User)
+class OwnUserAdmin(UserAdmin):
+    ...
+    actions = [send_confirmation_emails]
+    ...
+```
+
+*Attention:* This action may raise an `smtplib.SMTPException` for any of the supplied users, not sending any confirmation mails to users that would have been processed later.

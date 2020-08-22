@@ -72,6 +72,15 @@ class AbstractToken(models.Model):
         except cls.DoesNotExist:
             return None
 
+    @classmethod
+    def clear_expired_tokens(cls) -> int:
+        """
+        Clear tokens that are expired.
+        """
+        valid_min_creation = timezone.now() - cls.TOKEN_VALIDITY
+        deleted_count, detail = cls.objects.filter(created__lt=valid_min_creation).delete()
+        return deleted_count
+
     @staticmethod
     def _hash_token(token: bytes) -> bytes:
         """

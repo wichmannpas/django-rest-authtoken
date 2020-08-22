@@ -4,7 +4,7 @@ from rest_framework.routers import SimpleRouter
 from . import views
 
 
-app_name = 'authtoken'
+app_name = 'rest_authtoken'
 
 router = SimpleRouter()
 router.register('login', views.LoginViewSet, basename='login')

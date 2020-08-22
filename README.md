@@ -1,6 +1,5 @@
 # django-rest-authtoken
-A simple token-based auth backend for Django Rest Framework storing cryptographically hashed tokens on server-side. Unlike the upstream auth token implementation from Django Rest Framework, each login generates a new unique token, providing the ability to revoke (or log out) individual sessions rather than all at onces.
-
+A simple token-based authentication backend for Django Rest Framework that stores cryptographically hashed tokens on the server-side. Unlike the upstream auth token implementation of Django Rest Framework, each login generates a new unique token, providing the ability to revoke (or log out) individual sessions rather than all at onces.
 Furthermore, only cryptographically hashed values of the tokens are stored on the server, thus a leak of the server-side auth token table does not allow an attacker to use any authenticated sessions.
 
 
@@ -92,7 +91,7 @@ curl http://127.0.0.1:8000/auth/register/ --data 'username=john&password=foobar1
 {"success":true}
 ```
 
-If the use exists already:
+If the user exists already:
 
 ```bash
 curl http://127.0.0.1:8000/auth/register/ --data 'username=john&password=foobar123' -v

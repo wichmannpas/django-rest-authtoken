@@ -8,10 +8,14 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
 
+from .settings import AUTH_TOKEN_VALIDITY, REGISTRATION_EMAIL_CONFIRM_TOKEN_VALIDITY
+
 
 class AbstractToken(models.Model):
     class Meta:
         abstract = True
+
+    TOKEN_VALIDITY = AUTH_TOKEN_VALIDITY
 
     hashed_token = models.BinaryField(primary_key=True)
 
@@ -59,9 +63,7 @@ class AbstractToken(models.Model):
             auth_token = cls.objects.select_related('user').get(
                 hashed_token=cls._hash_token(token))
 
-            token_validity = getattr(settings, 'AUTH_TOKEN_VALIDITY', timedelta(days=1))
-
-            if auth_token.age > token_validity:
+            if auth_token.age > cls.TOKEN_VALIDITY:
                 # token expired.
                 auth_token.delete()
                 return None
@@ -83,6 +85,8 @@ class AuthToken(AbstractToken):
 
 
 class EmailConfirmationToken(AbstractToken):
+    TOKEN_VALIDITY = REGISTRATION_EMAIL_CONFIRM_TOKEN_VALIDITY
+
     email = models.EmailField()
 
     @classmethod

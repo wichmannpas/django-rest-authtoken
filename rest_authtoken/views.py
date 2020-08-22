@@ -3,7 +3,6 @@ from base64 import urlsafe_b64decode, urlsafe_b64encode
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
-from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -26,7 +25,7 @@ class LoginViewSet(ViewSet):
             password=request.data.get('password'))
         if not user:
             return Response(
-                _('invalid credentials.'),
+                'invalid credentials',
                 status=status.HTTP_401_UNAUTHORIZED)
 
         token = AuthToken.create_token_for_user(user)

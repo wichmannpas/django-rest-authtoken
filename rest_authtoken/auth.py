@@ -1,6 +1,5 @@
 from base64 import urlsafe_b64decode
 
-from django.utils.translation import ugettext_lazy as _
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -18,16 +17,16 @@ class AuthTokenAuthentication(BaseAuthentication):
             return None
 
         if len(auth) == 1:
-            msg = _('Invalid auth token header. No credentials provided.')
+            msg = 'invalid auth header, No credentials provided.'
             raise AuthenticationFailed(msg)
         elif len(auth) > 2:
-            msg = _('Invalid auth token.')
+            msg = 'invalid auth token'
             raise AuthenticationFailed(msg)
 
         try:
             token = urlsafe_b64decode(auth[1])
         except ValueError:
-            msg = _('Invalid auth token.')
+            msg = 'invalid auth token'
             raise AuthenticationFailed(msg)
 
         return self.authenticate_credentials(token, request)
@@ -39,10 +38,10 @@ class AuthTokenAuthentication(BaseAuthentication):
         user = AuthToken.get_user_for_token(token)
 
         if user is None:
-            raise AuthenticationFailed(_('Invalid auth token.'))
+            raise AuthenticationFailed('invalid auth token')
 
         if not user.is_active:
-            raise AuthenticationFailed(_('User inactive or deleted.'))
+            raise AuthenticationFailed('user invalid')
 
         return user, token
 

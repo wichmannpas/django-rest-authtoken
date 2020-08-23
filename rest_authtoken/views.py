@@ -13,7 +13,8 @@ from rest_framework.viewsets import GenericViewSet, ViewSet
 
 from .models import AuthToken, EmailConfirmationToken
 from .serializers import UserRegistrationSerializer
-from .settings import REGISTRATION_CONFIRM_REDIRECT_PATH, \
+from .settings import REGISTRATION_CONFIRM_INVALID_REDIRECT_PATH, \
+    REGISTRATION_CONFIRM_REDIRECT_PATH, \
     REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD, USER_SERIALIZER
 
 
@@ -78,18 +79,23 @@ class RegisterViewSet(GenericViewSet):
 
 @transaction.atomic
 def confirm_email(request, token: str):
-    # TODO
+    def invalid_action():
+        if REGISTRATION_CONFIRM_INVALID_REDIRECT_PATH:
+            return HttpResponseRedirect(REGISTRATION_CONFIRM_INVALID_REDIRECT_PATH)
+        else:
+            return HttpResponseBadRequest('invalid token!')
+
     try:
         token = urlsafe_b64decode(token)
     except ValueError:
-        return HttpResponseBadRequest('invalid token!')
+        return invalid_action()
     token = EmailConfirmationToken.get_token(token)
     if not token:
-        return HttpResponseBadRequest('invalid token!')
+        return invalid_action()
 
     user = token.user
     if user.email != token.email:
-        return HttpResponseBadRequest('invalid token!')
+        return invalid_action()
 
     setattr(user, REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD, True)
     user.save(update_fields=(REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD,))

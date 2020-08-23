@@ -163,7 +163,9 @@ For internationalization, lazy translation methods (e. g., `gettext_lazy`) can b
 
 To send a confirmation email to a user,  `send_confirmation_email(user: get_user_model())` from `rest_authtoken.email_confirmation` can be called with the user object as argument.
 
-Upon successful confirmation, the user is redirected to the path `/`. This can be changed by setting the variable `REGISTRATION_CONFIRM_REDIRECT_PATH` to a different path in the settings. **Be careful:** The path is not checked. You can configure absolute URLs to other domains as well. Make sure not to set this setting to any untrusted value.
+Upon successful confirmation, the user is redirected to the path `/`. This can be changed by setting the variable `REGISTRATION_CONFIRM_REDIRECT_PATH` to a different path in the settings.
+If the provided token is invalid or expired, the user can be redirected to a path by setting `REGISTRATION_CONFIRM_INVALID_REDIRECT_PATH`. If the value is not specified, a 400 Bad Request is returned with a short and generic (plain-text and unformatted) error message.
+**Be careful:** These paths are not checked. You can configure absolute URLs to other domains as well. Make sure not to set this setting to any untrusted value.
 
 #### Manual Confirmation Emails From Django Admin
 

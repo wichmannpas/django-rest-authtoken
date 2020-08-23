@@ -41,7 +41,7 @@ class AuthTokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed('invalid auth token')
 
         if not user.is_active:
-            raise AuthenticationFailed('user invalid')
+            raise AuthenticationFailed('invalid auth token')
 
         return user, token
 

@@ -119,7 +119,9 @@ REGISTRATION_ENABLED = True
 
 
 ### Confirmation Email
-It is possible to optionally enable an email confirmation. An email will be sent upon registration to the provided email address. For this to work, the user model needs to contain a `BooleanField` that stores whether the email address has been confirmed already. A minimal example of a compatible user model could look like this:
+It is possible to optionally enable an email confirmation. An email will be sent upon registration to the provided email address. For this to work, the user model needs to contain a `BooleanField` that stores whether the email address has been confirmed already. If email confirmation should be mandatory to be able to login, this can be set to the `active` field of the user (which is respected by django-rest-authtoken upon login).
+
+A minimal example of a compatible user model could look like this:
 
 ```python
 class User(AbstractUser):

@@ -117,8 +117,28 @@ The registration is disabled by default. To enable it, the following value is re
 REGISTRATION_ENABLED = True
 ```
 
+## Case-Insensitive Usernames
+
+To make usernames case-insensitive (and thus, prevent the registration of multiple identical usernames with different cases), you could overwrite the `get_by_natural_key` to search for existing usernames case-insensitively:
+
+```python
+class CustomUserManager(UserManager):
+    def get_by_natural_key(self, username):
+        username_attr = '{}__iexact'.format(self.model.USERNAME_FIELD)
+        return self.get(**{username_attr: username})
+
+class User(AbstractUser):
+    ...
+
+    objects = CustomUserManager()
+
+    ...
+```
+
+`django-rest-authtoken` uses the `get_by_natural_key` method upon registration to verify the uniqueness of the username.
 
 ### Confirmation Email
+
 It is possible to optionally enable an email confirmation. An email will be sent upon registration to the provided email address. For this to work, the user model needs to contain a `BooleanField` that stores whether the email address has been confirmed already. If email confirmation should be mandatory to be able to login, this can be set to the `active` field of the user (which is respected by django-rest-authtoken upon login).
 
 A minimal example of a compatible user model could look like this:

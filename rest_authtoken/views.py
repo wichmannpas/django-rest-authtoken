@@ -1,6 +1,6 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, user_logged_in
 from django.db import transaction
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from rest_framework import status
@@ -38,6 +38,8 @@ class LoginViewSet(ViewSet):
         if USER_SERIALIZER:
             data['user'] = USER_SERIALIZER(
                 instance=user, read_only=True).data
+
+        user_logged_in.send(sender=user.__class__, request=request, user=user)
 
         return Response(data)
 

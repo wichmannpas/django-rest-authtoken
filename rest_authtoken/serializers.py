@@ -55,9 +55,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         instance.set_password(password)
         instance.save()
 
-        try:
-            send_confirmation_email(instance)
-        except SMTPException:
-            raise ValidationError('failed to send confirmation email')
+        if REGISTRATION_EMAIL_CONFIRM:
+            try:
+                send_confirmation_email(instance)
+            except SMTPException:
+                raise ValidationError('failed to send confirmation email')
 
         return instance

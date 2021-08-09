@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from .email_confirmation import send_confirmation_email
-from .settings import REGISTRATION_EMAIL_CONFIRM
+from .settings import REGISTRATION_EMAIL_CONFIRM, REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -53,6 +53,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         instance = self.Meta.model(**validated_data)
         instance.set_password(password)
+
+        if REGISTRATION_EMAIL_CONFIRM:
+            setattr(instance, REGISTRATION_EMAIL_CONFIRM_MODEL_FIELD, False)
+
         instance.save()
 
         if REGISTRATION_EMAIL_CONFIRM:
